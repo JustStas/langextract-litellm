@@ -10,9 +10,8 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "Apache-2.0"}
 dependencies = [
-    "langextract>=1.0.0",
-    "litellm",
-    # Add your provider's SDK dependencies here
+    "langextract>=1.0.0,<2.0.0",
+    "litellm>=1.40.0",
 ]
 
 [project.entry-points."langextract.providers"]
