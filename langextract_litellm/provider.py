@@ -9,6 +9,7 @@ import litellm
 from langextract import data, exceptions, inference, schema
 from langextract.providers import registry
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -76,11 +77,11 @@ class LiteLLMLanguageModel(lx.inference.BaseLanguageModel):
             Lists of ScoredOutput objects, one per prompt.
         """
         # Merge provider kwargs with call-time kwargs (call-time takes precedence)
-        api_params = {**self.provider_kwargs, **kwargs}
+        # api_params = {**self.provider_kwargs, **kwargs}
 
         for prompt in batch_prompts:
             try:
-                logger.debug(f"Calling LiteLLM completion for model {self.model_id}")
+                logger.info(f"Calling LiteLLM completion for model {self.model_id}")
 
                 # Format prompt as messages for chat models
                 messages = [{"role": "user", "content": str(prompt)}]
@@ -88,7 +89,7 @@ class LiteLLMLanguageModel(lx.inference.BaseLanguageModel):
                 response = litellm.completion(
                     model=self.model_id,
                     messages=messages,
-                    **api_params,
+                    **self.provider_kwargs,
                 )
 
                 # Extract the response content
