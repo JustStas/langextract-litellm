@@ -3,6 +3,7 @@
 
 import re
 import sys
+
 import langextract as lx
 from langextract.providers import registry
 
@@ -15,14 +16,16 @@ except ImportError:
 lx.providers.load_plugins_once()
 
 PROVIDER_CLS_NAME = "LiteLLMLanguageModel"
-PATTERNS = ['^litellm']
+PATTERNS = ["^litellm", "^gpt-", "^claude-"]
+
 
 def _example_id(pattern: str) -> str:
     """Generate test model ID from pattern."""
-    base = re.sub(r'^\^', '', pattern)
+    base = re.sub(r"^\^", "", pattern)
     m = re.match(r"[A-Za-z0-9._-]+", base)
     base = m.group(0) if m else (base or "model")
     return f"{base}-test"
+
 
 sample_ids = [_example_id(p) for p in PATTERNS]
 sample_ids.append("unknown-model")
@@ -37,8 +40,18 @@ for model_id in sample_ids:
         provider_class = registry.resolve(model_id)
         ok = provider_class.__name__ == PROVIDER_CLS_NAME
         status = "✓" if (ok or model_id == "unknown-model") else "✗"
-        note = "expected" if ok else ("expected (no provider)" if model_id == "unknown-model" else "unexpected provider")
-        print(f"   {status} {model_id} -> {provider_class.__name__ if ok else 'resolved'} {note}")
+        note = (
+            "expected"
+            if ok
+            else (
+                "expected (no provider)"
+                if model_id == "unknown-model"
+                else "unexpected provider"
+            )
+        )
+        print(
+            f"   {status} {model_id} -> {provider_class.__name__ if ok else 'resolved'} {note}"
+        )
     except Exception as e:
         if model_id == "unknown-model":
             print(f"   ✓ {model_id}: No provider found (expected)")
@@ -48,7 +61,11 @@ for model_id in sample_ids:
 # 3. Inference sanity check
 print("\n3. Test inference with sample prompts")
 try:
-    model_id = sample_ids[0] if sample_ids[0] != "unknown-model" else (_example_id(PATTERNS[0]) if PATTERNS else "test-model")
+    model_id = (
+        sample_ids[0]
+        if sample_ids[0] != "unknown-model"
+        else (_example_id(PATTERNS[0]) if PATTERNS else "test-model")
+    )
     provider = LiteLLMLanguageModel(model_id=model_id)
     prompts = ["Test prompt 1", "Test prompt 2"]
     results = list(provider.infer(prompts))
@@ -66,9 +83,10 @@ except Exception as e:
 print("\n5. Test factory integration")
 try:
     from langextract import factory
+
     config = factory.ModelConfig(
         model_id=_example_id(PATTERNS[0]) if PATTERNS else "test-model",
-        provider="LiteLLMLanguageModel"
+        provider="LiteLLMLanguageModel",
     )
     model = factory.create_model(config)
     print(f"   ✓ Factory created: {type(model).__name__}")

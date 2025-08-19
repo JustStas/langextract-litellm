@@ -1,42 +1,147 @@
 """Provider implementation for LiteLLM."""
 
+import logging
 import os
+
 import langextract as lx
 
+try:
+    import litellm
+except ImportError:
+    raise ImportError(
+        "litellm is required for the LiteLLM provider. "
+        "Install it with: pip install litellm"
+    )
 
-@lx.providers.registry.register(r'^litellm', priority=10)
+logger = logging.getLogger(__name__)
+
+
+@lx.providers.registry.register(
+    r"^litellm",  # litellm-gpt-4
+    r"^gpt-",  # gpt-4, gpt-3.5-turbo
+    r"^claude-",  # claude-3-opus
+    r"^gemini-",  # gemini-pro
+    r"^palm-",  # palm-2
+    r"^text-davinci-",  # text-davinci-003
+    r"^text-curie-",  # text-curie-001
+    r"^text-babbage-",  # text-babbage-001
+    r"^text-ada-",  # text-ada-001
+    r"^davinci",  # davinci
+    r"^curie",  # curie
+    r"^babbage",  # babbage
+    r"^ada",  # ada
+    r"^llama",  # llama-2-7b-chat
+    r"^mistral",  # mistral-7b-instruct
+    r"^codellama",  # codellama-34b-instruct
+    r"^vicuna",  # vicuna-13b
+    r"^alpaca",  # alpaca-7b
+    r"^chatglm",  # chatglm-6b
+    r"^falcon",  # falcon-7b-instruct
+    r"^mpt",  # mpt-7b-chat
+    r"^dolly",  # dolly-v2-12b
+    r"^stablelm",  # stablelm-tuned-alpha-7b
+    r"^rwkv",  # rwkv-4-raven-14b
+    r"^bloom",  # bloom-176b
+    r"^opt-",  # opt-175b
+    r"^t5-",  # t5-11b
+    r"^ul2",  # ul2
+    r"^flan-",  # flan-t5-xxl
+    priority=10,
+)
 class LiteLLMLanguageModel(lx.inference.BaseLanguageModel):
     """LangExtract provider for LiteLLM.
 
-    This provider handles model IDs matching: ['^litellm']
+    This provider supports a wide range of models through LiteLLM's unified API,
+    including OpenAI GPT models, Anthropic Claude, Google PaLM, and many open-source models.
+
+    Supported model patterns:
+    - litellm-* (explicit LiteLLM prefix)
+    - gpt-* (OpenAI models)
+    - claude-* (Anthropic models)
+    - gemini-*, palm-* (Google models)
+    - llama*, mistral*, codellama* (Meta/Mistral models)
+    - And many more open-source models
     """
 
     def __init__(self, model_id: str, api_key: str = None, **kwargs):
         """Initialize the LiteLLM provider.
 
         Args:
-            model_id: The model identifier.
-            api_key: API key for authentication.
-            **kwargs: Additional provider-specific parameters.
+            model_id: The model identifier (e.g., 'gpt-4', 'claude-3-opus', 'llama-2-7b-chat').
+            api_key: API key for authentication. If not provided, LiteLLM will automatically
+                    look for provider-specific environment variables (OPENAI_API_KEY,
+                    ANTHROPIC_API_KEY, GOOGLE_API_KEY, etc.)
+            **kwargs: Any parameters supported by litellm.completion(), including:
+                    - api_base: Custom API base URL
+                    - temperature: Sampling temperature (0.0-1.0)
+                    - max_tokens: Maximum tokens to generate
+                    - top_p: Top-p sampling parameter
+                    - frequency_penalty: Frequency penalty (-2.0 to 2.0)
+                    - presence_penalty: Presence penalty (-2.0 to 2.0)
+                    - timeout: Request timeout in seconds
+                    - And any other LiteLLM-supported parameters
         """
         super().__init__()
-        self.model_id = model_id
-        self.api_key = api_key or os.environ.get('LITELLM_API_KEY')
 
-        # self.client = YourClient(api_key=self.api_key)
-        self._extra_kwargs = kwargs
+        # Remove litellm- prefix if present for actual model calls
+        if model_id.startswith("litellm-"):
+            self.model_id = model_id[8:]  # Remove 'litellm-' prefix
+        else:
+            self.model_id = model_id
+
+        self.original_model_id = model_id
+
+        # Store provider-specific parameters
+        self.provider_kwargs = kwargs
+
+        logger.info(f"Initialized LiteLLM provider for model: {self.model_id}")
 
     def infer(self, batch_prompts, **kwargs):
         """Run inference on a batch of prompts.
 
         Args:
             batch_prompts: List of prompts to process.
-            **kwargs: Additional inference parameters.
+            **kwargs: Additional inference parameters that override instance defaults.
 
         Yields:
             Lists of ScoredOutput objects, one per prompt.
         """
+        # Merge provider kwargs with call-time kwargs (call-time takes precedence)
+        api_params = {**self.provider_kwargs, **kwargs}
+
         for prompt in batch_prompts:
-            # result = self.client.generate(prompt, **kwargs)
-            result = f"Mock response for: {prompt[:50]}..."
-            yield [lx.inference.ScoredOutput(score=1.0, output=result)]
+            try:
+                logger.debug(f"Calling LiteLLM completion for model {self.model_id}")
+
+                # Format prompt as messages for chat models
+                messages = [{"role": "user", "content": str(prompt)}]
+
+                response = litellm.completion(
+                    model=self.model_id,
+                    messages=messages,
+                    **api_params,
+                )
+
+                # Extract the response content
+                if response.choices and len(response.choices) > 0:
+                    content = response.choices[0].message.content
+                    if content:
+                        yield [lx.inference.ScoredOutput(score=1.0, output=content)]
+                    else:
+                        logger.warning(
+                            f"Empty response from LiteLLM for model {self.model_id}"
+                        )
+                        yield [lx.inference.ScoredOutput(score=0.0, output="")]
+                else:
+                    logger.error(
+                        f"No choices in response from LiteLLM for model {self.model_id}"
+                    )
+                    yield [lx.inference.ScoredOutput(score=0.0, output="")]
+
+            except Exception as e:
+                logger.error(
+                    f"Error calling LiteLLM completion for model {self.model_id}: {str(e)}"
+                )
+                # Return an error output instead of raising
+                error_msg = f"LiteLLM API error: {str(e)}"
+                yield [lx.inference.ScoredOutput(score=0.0, output=error_msg)]
