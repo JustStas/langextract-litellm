@@ -16,7 +16,7 @@ except ImportError:
 lx.providers.load_plugins_once()
 
 PROVIDER_CLS_NAME = "LiteLLMLanguageModel"
-PATTERNS = ["^litellm", "^gpt-", "^claude-"]
+PATTERNS = ["^litellm"]
 
 
 def _example_id(pattern: str) -> str:
@@ -24,7 +24,7 @@ def _example_id(pattern: str) -> str:
     base = re.sub(r"^\^", "", pattern)
     m = re.match(r"[A-Za-z0-9._-]+", base)
     base = m.group(0) if m else (base or "model")
-    return f"{base}-test"
+    return f"{base}-azure/gpt-4o"
 
 
 sample_ids = [_example_id(p) for p in PATTERNS]

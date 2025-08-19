@@ -11,7 +11,8 @@ requires-python = ">=3.10"
 license = {text = "Apache-2.0"}
 dependencies = [
     "langextract>=1.0.0",
-    "litellm>=1.0.0"
+    "litellm",
+    # Add your provider's SDK dependencies here
 ]
 
 [project.entry-points."langextract.providers"]

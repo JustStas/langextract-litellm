@@ -4,19 +4,22 @@ import logging
 import os
 
 import langextract as lx
-import litellm
+
+try:
+    import litellm
+except ImportError:
+    raise ImportError(
+        "litellm is required for the LiteLLM provider. "
+        "Install it with: pip install litellm"
+    )
 
 logger = logging.getLogger(__name__)
 
 
-@lx.providers.registry.register(r"^litellm", priority=10)
-class LiteLLMLanguageModel(lx.inference.BaseLanguageModel):
-    """LangExtract provider for LiteLLM.
-
-    This provider handles model IDs matching: ['^litellm']
-    """
-
-
+@lx.providers.registry.register(
+    r"^litellm",  # litellm-gpt-4, litellm/azure/gpt-4o, litellm-claude-3-opus
+    priority=10,
+)
 class LiteLLMLanguageModel(lx.inference.BaseLanguageModel):
     """LangExtract provider for LiteLLM.
 
