@@ -2,21 +2,17 @@
 
 import logging
 import os
+from collections.abc import Iterator, Sequence
 
 import langextract as lx
 import litellm
+from langextract import data, exceptions, inference, schema
+from langextract.providers import registry
 
 logger = logging.getLogger(__name__)
 
 
 @lx.providers.registry.register(r"^litellm", priority=10)
-class LiteLLMLanguageModel(lx.inference.BaseLanguageModel):
-    """LangExtract provider for LiteLLM.
-
-    This provider handles model IDs matching: ['^litellm']
-    """
-
-
 class LiteLLMLanguageModel(lx.inference.BaseLanguageModel):
     """LangExtract provider for LiteLLM.
 
@@ -67,7 +63,9 @@ class LiteLLMLanguageModel(lx.inference.BaseLanguageModel):
 
         logger.info(f"Initialized LiteLLM provider for model: {self.model_id}")
 
-    def infer(self, batch_prompts, **kwargs):
+    def infer(
+        self, batch_prompts, **kwargs
+    ) -> Iterator[Sequence[inference.ScoredOutput]]:
         """Run inference on a batch of prompts.
 
         Args:
