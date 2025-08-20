@@ -15,7 +15,7 @@ pip install langextract-litellm
 Or install from source for development:
 
 ```bash
-git clone https://github.com/your-username/langextract-litellm
+git clone https://github.com/JustStas/langextract-litellm
 cd langextract-litellm
 pip install -e .
 ```
