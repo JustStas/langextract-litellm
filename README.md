@@ -4,7 +4,17 @@ A provider plugin for LangExtract that supports 100+ LLM models through [LiteLLM
 
 ## Installation
 
+Install from PyPI:
+
 ```bash
+pip install langextract-litellm
+```
+
+Or install from source for development:
+
+```bash
+git clone https://github.com/your-username/langextract-litellm
+cd langextract-litellm
 pip install -e .
 ```
 
