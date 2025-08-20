@@ -1,6 +1,8 @@
 # LangExtract LiteLLM Provider
 
-A provider plugin for LangExtract that supports 100+ LLM models through [LiteLLM](https://docs.litellm.ai/docs/#basic-usage)'s unified API, including OpenAI GPT models, Anthropic Claude, Google PaLM, Azure OpenAI, and many open-source models.
+A provider plugin for [LangExtract](https://github.com/google/langextract) that supports 100+ LLM models through [LiteLLM](https://docs.litellm.ai/docs/#basic-usage)'s unified API, including OpenAI GPT models, Anthropic Claude, Google PaLM, Azure OpenAI, and many open-source models.
+
+> **Note**: This is a third-party provider plugin for LangExtract. For the main LangExtract library, visit [google/langextract](https://github.com/google/langextract).
 
 ## Installation
 
